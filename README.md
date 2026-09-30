@@ -112,9 +112,13 @@ Both scripts refuse to proceed on a failed check. Two guards:
    failure mode that caused the most trouble during development.
 2. **Against the portal.** Aves + 2025 + occurrence status present +
    eventID must reproduce the figure read off gbif.org (8,358,962
-   globally). Changing `COUNTRIES` sets the expected value to `NA`, which
-   keeps the non-zero check and skips the numeric one — read a new figure
-   off the portal if you want it back.
+   globally). Changing `COUNTRIES` or `DATASETS` sets the expected value
+   to `NA`, which keeps the non-zero check and skips the numeric one — read
+   a new figure off the portal if you want it back. Under a `DATASETS`
+   scope the non-zero check only warns, since a benchmark set may simply
+   hold no bird records with `eventID`; instead the run stops if none of
+   the listed datasets has records in scope, and warns for each one that
+   has none.
 
 Groups that fail resolution are dropped with a printed reason rather than
 aborting the run, and the dropped set is recorded in the provenance file.
@@ -170,6 +174,22 @@ everything else lives.
 
 Run global and national scopes into separate output directories — both
 write identical filenames.
+
+### Benchmark datasets
+
+`DATASETS` in SECTION 0 restricts every query to a list of GBIF dataset
+keys (UUIDs), e.g. a set of reference benchmark datasets:
+
+```r
+DATASETS <- "b124e1e0-4755-430f-9eab-894f25a9b59c, 4fa7b334-ce0d-4e88-aaae-2e0c138d049e"
+```
+
+It takes a character vector or one string separated by commas,
+semicolons or whitespace, and combines with `COUNTRIES` by AND. Malformed
+UUIDs stop the run. When set, `OUTDIR` defaults to `benchmark/` so the
+run does not overwrite the full-corpus outputs. The record-level script
+pools the listed datasets per group; per-dataset figures are in the
+dataset-level script's `gbif_dataset_shares.csv`.
 
 ## Reproducibility
 

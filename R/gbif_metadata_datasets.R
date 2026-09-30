@@ -36,10 +36,11 @@
 #   SECTION 10  FIGURES            per-metric panels, heatmap + volume.
 #   SECTION 11  PROVENANCE
 #
-#  Requires: httr2, dplyr, tidyr, tibble, purrr, readr, ggplot2, patchwork, scales
+#  Requires: httr2, jsonlite, dplyr, tidyr, tibble, purrr, readr, ggplot2, patchwork, scales
 # ==============================================================================
 
 library(httr2)
+library(jsonlite)   # httr2 needs it to parse responses but only Suggests it
 library(dplyr)
 library(tidyr)
 library(purrr)
@@ -58,9 +59,16 @@ library(patchwork)
 ## COUNTRY is the interpreted country of the record, not PUBLISHING_COUNTRY.
 COUNTRIES <- NULL
 
+## Dataset scope ---------------------------------------------------------------
+## NULL | c("<uuid>", "<uuid>") | "<uuid>, <uuid>, ..."   -- GBIF dataset keys
+## Restricts every query to these datasets, e.g. a set of reference benchmark
+## datasets. Combined with COUNTRIES by AND. Either a character vector or one
+## string separated by commas, semicolons or whitespace.
+DATASETS <- NULL
+
 YEARS  <- 1950:2026
 LABEL  <- "vernacular"     # "vernacular" | "vernacular_no" | "group"
-OUTDIR <- "."
+OUTDIR <- if (is.null(DATASETS)) "." else "benchmark"   # keep benchmark runs apart
 
 ## Facet limit for DATASET_KEY --------------------------------------------------
 ## Globally there are tens of thousands of datasets. If a facet comes back with
@@ -68,7 +76,18 @@ OUTDIR <- "."
 FACET_LIMIT <- 100000
 
 ## Validation: gbif.org Aves + 2025 + present + eventID, at the scope set above.
-GROUND_TRUTH <- if (is.null(COUNTRIES)) 8358962 else NA_real_
+GROUND_TRUTH <- if (is.null(COUNTRIES) && is.null(DATASETS)) 8358962 else NA_real_
+
+## Parse and check DATASETS. A malformed key would otherwise match nothing and
+## return 0 silently.
+if (!is.null(DATASETS)) {
+  DATASETS <- unique(tolower(unlist(strsplit(DATASETS, "[,;[:space:]]+"))))
+  DATASETS <- DATASETS[nzchar(DATASETS)]
+  uuid_re  <- "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+  bad_uuid <- DATASETS[!grepl(uuid_re, DATASETS)]
+  if (length(bad_uuid) > 0) stop("Not a valid dataset UUID: ",
+                                 paste(bad_uuid, collapse = ", "), call. = FALSE)
+}
 
 dir.create(OUTDIR, showWarnings = FALSE, recursive = TRUE)
 op <- function(f) file.path(OUTDIR, f)
@@ -192,8 +211,11 @@ p_taxon   <- function(key) list(type = "equals", key = "TAXON_KEY",
 p_any     <- function(preds) if (length(preds) == 1) preds[[1]] else p_or(preds)
 p_taxa    <- function(keys) p_any(map(keys, p_taxon))
 
-p_scope <- if (is.null(COUNTRIES)) NULL else
-  p_any(map(COUNTRIES, \(cc) p_equals("COUNTRY", cc)))
+p_scope <- compact(list(
+  if (!is.null(COUNTRIES)) p_any(map(COUNTRIES, \(cc) p_equals("COUNTRY", cc))),
+  if (!is.null(DATASETS))  p_any(map(DATASETS,  \(dk) p_equals("DATASET_KEY", dk)))
+))
+p_scope <- switch(length(p_scope) + 1, NULL, p_scope[[1]], do.call(p_and, p_scope))
 p_years <- p_range("YEAR", min(YEARS), max(YEARS))
 
 gbif_count <- function(predicate) gbif_post(list(predicate = predicate, limit = 0))$count
@@ -303,16 +325,32 @@ metric_pred <- function(kind, arg) {
 # ==============================================================================
 # A wrong key space returns 0, not an error.
 
+if (!is.null(DATASETS)) {
+  ds_found <- gbif_facet(p_and(p_scope, p_years), "DATASET_KEY", n = length(DATASETS))
+  ds_empty <- setdiff(DATASETS, ds_found$value)
+  message("\nDATASETS: ", nrow(ds_found), " of ", length(DATASETS),
+          " have records in scope.")
+  if (length(ds_empty) > 0) {
+    warning("No records in scope for these datasets (wrong key, or nothing in ",
+            "COUNTRIES/YEARS):\n  ", paste(ds_empty, collapse = "\n  "))
+  }
+  if (nrow(ds_found) == 0) stop("None of DATASETS has records in scope.", call. = FALSE)
+}
+
 aves_key <- resolution$key[resolution$group == "Aves"]
 n_val <- gbif_count(p_and(p_taxon(aves_key), p_scope,
                           p_equals("YEAR", 2025),
                           p_equals("OCCURRENCE_STATUS", "PRESENT"),
                           p_notnull("EVENT_ID")))
-if (n_val == 0) stop("Aves validation returned 0 -- key space, checklistKey or ",
-                     "scope is wrong.", call. = FALSE)
+## Under a dataset scope, zero Aves/eventID records can be genuine, so warn only.
+if (n_val == 0 && is.null(DATASETS)) stop("Aves validation returned 0 -- key ",
+                                          "space, checklistKey or scope is wrong.",
+                                          call. = FALSE)
+if (n_val == 0) warning("Aves validation returned 0 -- expected if DATASETS ",
+                        "holds no bird records with eventID in 2025.")
 
 if (is.na(GROUND_TRUTH)) {
-  message(sprintf("\nValidation: Aves/2025/eventID = %s (non-zero).",
+  message(sprintf("\nValidation: Aves/2025/eventID = %s.",
                   format(n_val, big.mark = " ")))
 } else {
   rel <- abs(n_val - GROUND_TRUTH) / GROUND_TRUTH
@@ -398,7 +436,9 @@ readr::write_csv(shares, op("gbif_dataset_shares.csv"))
 # SECTION 10 -- FIGURES
 # ==============================================================================
 
-scope_txt <- if (is.null(COUNTRIES)) "global" else paste(COUNTRIES, collapse = "+")
+scope_txt <- paste(c(if (is.null(COUNTRIES)) "global" else paste(COUNTRIES, collapse = "+"),
+                    if (!is.null(DATASETS)) sprintf("%d benchmark datasets", length(DATASETS))),
+                  collapse = ", ")
 ord  <- pct |> mutate(l = .data[[LABEL]]) |> arrange(datasets_total) |> pull(l)
 base <- pct |> mutate(label = factor(.data[[LABEL]], levels = ord))
 
@@ -491,6 +531,7 @@ saveRDS(list(
   endpoint    = SEARCH_URL,
   checklist   = c(name = "Catalogue of Life XR", key = COL),
   countries   = COUNTRIES %||% "global",
+  datasets    = DATASETS %||% "all",
   years       = range(YEARS),
   facet_limit = FACET_LIMIT,
   metrics     = METRIC_DEFS,
