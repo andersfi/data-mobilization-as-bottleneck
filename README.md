@@ -215,5 +215,18 @@ not committed — see `.gitignore` — because they are cheaply regenerated
 and scope-dependent (global vs. national runs overwrite each other's
 default filenames).
 
-Requires: `httr2`, `dplyr`, `tidyr`, `tibble`, `purrr`, `readr`,
+Requires: `httr2`, `jsonlite`, `dplyr`, `tidyr`, `tibble`, `purrr`, `readr`,
 `ggplot2`, `patchwork`, `scales`, pinned in `renv.lock`.
+
+## Authorship and use of AI
+
+The code in this repository was written with Claude, an AI model by
+Anthropic (Claude Sonnet 5 and Claude Opus 5.5, via Claude Code), under the
+direction of the author. The author designed the analysis, reviewed the
+code and its output, and takes full intellectual responsibility for the
+work, including any errors.
+
+## Citation and licence
+
+Citation metadata is in [`CITATION.cff`](CITATION.cff). The code is
+released under the [MIT licence](LICENSE).

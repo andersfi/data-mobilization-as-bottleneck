@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+type: software
+title: "Data mobilization as the critical bottleneck for bias-aware biodiversity inference"
+abstract: >-
+  Analysis code measuring the share of GBIF-mediated occurrence records and
+  datasets that carry interpretable sampling metadata (eventID,
+  parentEventID, samplingProtocol, sampleSizeValue, organismQuantity and
+  measurement extensions), by taxonomic group.
+authors:
+  - family-names: Finstad
+    given-names: Anders G.
+    affiliation: >-
+      Gjærevoll Centre for Biodiversity Foresight Analyses, and Department of
+      Natural History, NTNU University Museum, Norwegian University of Science
+      and Technology (NTNU), Trondheim, Norway
+repository-code: "https://github.com/andersfi/data-mobilization-as-bottleneck"
+license: MIT
+keywords:
+  - biodiversity
+  - GBIF
+  - Darwin Core
+  - sampling metadata
+  - data mobilization
