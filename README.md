@@ -1,4 +1,4 @@
-# Data mobilization as the critical bottleneck for bias-aware biodiversity inference
+# Code and data for: Data mobilization as the critical bottleneck for bias-aware biodiversity inference
 
 Supporting analysis and figures for a BioScience Forum article arguing that
 the main bottleneck in large-scale biodiversity inference is not modelling
