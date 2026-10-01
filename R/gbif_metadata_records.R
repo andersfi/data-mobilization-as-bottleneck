@@ -154,7 +154,13 @@ GROUPS <- tibble::tribble(
 # read the figures as independent proportions, not as a funnel.
 #
 # Terms NOT available in the occurrence index: taxonomicScope, samplingEffort,
-# eventType. These are Humboldt terms and are not indexed.
+# eventType. These are Humboldt terms and are not indexed. samplingEffort is
+# rejected as a predicate parameter and ignored as a facet (checked 2026-10-01).
+#
+# EFFORT INFORMATION: sampleSizeValue is the only indexed effort term, so it is
+# labelled "Effort information" in the figures. samplingEffort (free text) and
+# sampleSizeValue (number + unit) are used interchangeably in practice, so the
+# figure reports the indexed one as a lower bound on records carrying effort.
 #
 # NOTE ON HUMBOLDT: the Humboldt Extension for Ecological Inventories does not
 # appear among GBIF's indexed extensions at all -- a global DWCA_EXTENSION facet
@@ -174,7 +180,7 @@ METRIC_DEFS <- tibble::tribble(
   "with_eventid",      "eventID",            "notnull",   "EVENT_ID",
   "with_parent_event", "parentEventID",      "notnull",   "PARENT_EVENT_ID",
   "with_protocol",     "samplingProtocol",   "notnull",   "SAMPLING_PROTOCOL",
-  "with_sample_size",  "sampleSizeValue",    "notnull",   "SAMPLE_SIZE_VALUE",
+  "with_sample_size",  "Effort information", "notnull",   "SAMPLE_SIZE_VALUE",
   "with_quantity",     "organismQuantity",   "notnull",   "ORGANISM_QUANTITY",
   "with_emof",         "eMoF extension",     "extension", "http://rs.iobis.org/obis/terms/ExtendedMeasurementOrFact",
   "with_mof",          "MeasurementOrFact",  "extension", "http://rs.tdwg.org/dwc/terms/MeasurementOrFact"

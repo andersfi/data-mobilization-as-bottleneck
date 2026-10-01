@@ -32,6 +32,12 @@ field-wide norm does.
 `organismQuantity`, plus presence of the OBIS ExtendedMeasurementOrFact and
 Darwin Core MeasurementOrFact extensions.
 
+In the figures `sampleSizeValue` is labelled **Effort information**.
+`samplingEffort` and `sampleSizeValue` are used interchangeably in
+practice, but only `sampleSizeValue` is indexed (`samplingEffort` is
+rejected by the predicate API), so the figure is a lower bound on records
+carrying effort information.
+
 The terms are **not nested**. A record can carry `organismQuantity`
 without `sampleSizeValue`. Read the figures as independent proportions,
 not as a funnel.
